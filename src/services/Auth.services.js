@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 import bcrypt from "bcryptjs";
-const JWT_SECRET = process.env.JWT_SECRET;
+
 const AuthService = {
   register: async (userData) => {
     const { name, email, password, role } = userData;
@@ -14,6 +14,10 @@ const AuthService = {
     return user;
   },
   login: async (email, password) => {
+
+
+    const JWT_SECRET = process.env.JWT_SECRET;
+
     const user = await User.findOne({ email });
     if (!user) {
       throw new Error("Invalid email or password");
@@ -25,6 +29,8 @@ const AuthService = {
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
       expiresIn: "1d",
     });
+
+    
     return {
       token: token,
       user: {
