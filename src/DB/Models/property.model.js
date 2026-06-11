@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 const propertySchema = new Schema(
   {
@@ -33,6 +33,7 @@ const propertySchema = new Schema(
     },
     images: {
       type: [String],
+        publicId: String,
       default: [],
     },
     
@@ -86,3 +87,4 @@ const propertySchema = new Schema(
 propertySchema.index({ location: "2dsphere" });
 
 const Property = mongoose.model("Property", propertySchema);
+export default Property;
