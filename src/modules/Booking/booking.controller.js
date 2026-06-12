@@ -1,132 +1,101 @@
-import Booking from "../../DB/Models/booking.model.js"
-import Property from "../../DB/Models/property.model.js"
-import User from "../../DB/Models/user.model.js"
+import Booking from "../../DB/Models/booking.model.js";
+import Property from "../../DB/Models/property.model.js";
+import User from "../../DB/Models/user.model.js";
+import AppError from "../../utils/AppError.js";
 
 export const createBooking = async (req, res) => {
-    try {
-        const { propertyId, startDate, endDate } = req.body
-        const tenantId = req.user.id
+  const { propertyId, startDate, endDate } = req.body;
+  const tenantId = req.user.id;
 
-        const property = await Property.findById(propertyId)
+  const property = await Property.findById(propertyId);
 
-        if (!property) {
-            return res.status(404).json({ message: "Property not found" })
-        }
+  if (!property) {
+    throw new AppError("Property not found", 404);
+  }
 
-        if (property.status !== "APPROVED") {
-            return res.status(400).json({ message: "Property is not available for booking" })
-        }
+  if (property.status !== "APPROVED") {
+    throw new AppError("Property is not available for booking", 400);
+  }
 
-        const conflict = await Booking.findOne({
-            propertyId,
-            status: { $ne: "CANCELLED" },
-            startDate: { $lt: new Date(endDate) },
-            endDate: { $gt: new Date(startDate) },
-        })
+  const conflict = await Booking.findOne({
+    propertyId,
+    status: { $ne: "CANCELLED" },
+    startDate: { $lt: new Date(endDate) },
+    endDate: { $gt: new Date(startDate) },
+  });
 
-        if (conflict) {
-            return res.status(400).json({ message: "Property is already booked for these dates" })
-        }
+  if (conflict) {
+    throw new AppError("Property is already booked for these dates", 400);
+  }
 
-        const amountPaid = property.pricePerMonth
+  const amountPaid = property.pricePerMonth;
 
-        const booking = await Booking.create({
-            propertyId,
-            tenantId,
-            startDate,
-            endDate,
-            amountPaid,
-            stripePaymentIntentId: `MOCK_${Date.now()}`,
-            status: "PENDING_PAYMENT",
-        })
+  const booking = await Booking.create({
+    propertyId,
+    tenantId,
+    startDate,
+    endDate,
+    amountPaid,
+    stripePaymentIntentId: `MOCK_${Date.now()}`,
+    status: "PENDING_PAYMENT",
+  });
 
-        return res.status(201).json({
-            message: "Booking created successfully",
-            booking,
-        })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Server error",
-            error: error.message,
-        })
-    }
-}
+  return res.status(201).json({
+    message: "Booking created successfully",
+    booking,
+  });
+};
 export const cancelBooking = async (req, res) => {
-    try {
-        const { id } = req.params
-        const tenantId = req.user.id
+  const { id } = req.params;
+  const tenantId = req.user.id;
 
-        const booking = await Booking.findById(id)
+  const booking = await Booking.findById(id);
 
-        if (!booking) {
-            return res.status(404).json({ message: "Booking not found" })
-        }
+  if (!booking) {
+    throw new AppError("Booking not found", 404);
+  }
 
-        if (booking.tenantId.toString() !== tenantId.toString()) {
-            return res.status(403).json({ message: "Not authorized" })
-        }
+  if (booking.tenantId.toString() !== tenantId.toString()) {
+    throw new AppError("Not authorized", 403);
+  }
 
-        if (booking.status === "CANCELLED") {
-            return res.status(400).json({ message: "Booking already cancelled" })
-        }
+  if (booking.status === "CANCELLED") {
+    throw new AppError("Booking already cancelled", 400);
+  }
 
-        booking.status = "CANCELLED"
-        await booking.save()
+  booking.status = "CANCELLED";
+  await booking.save();
 
-        const user = await User.findById(tenantId)
+  const user = await User.findById(tenantId);
 
-        user.cancellationCount += 1
+  user.cancellationCount += 1;
 
-        if (user.cancellationCount >= 3) {
-            user.isBanned = true
-        }
+  if (user.cancellationCount >= 3) {
+    user.isBanned = true;
+  }
 
-        await user.save()
+  await user.save();
 
-        return res.status(200).json({
-            message: "Booking cancelled successfully",
-            booking,
-        })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Server error",
-            error: error.message,
-        })
-    }
-}
+  return res.status(200).json({
+    message: "Booking cancelled successfully",
+    booking,
+  });
+};
 export const getTenantBookings = async (req, res) => {
-    try {
-        const tenantId = req.user.id
+  const tenantId = req.user.id;
 
-        const bookings = await Booking.find({ tenantId })
-            .populate("propertyId", "title pricePerMonth location")
-            .sort({ createdAt: -1 })
+  const bookings = await Booking.find({ tenantId })
+    .populate("propertyId", "title pricePerMonth location")
+    .sort({ createdAt: -1 });
 
-        return res.status(200).json({ bookings })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Server error",
-            error: error.message,
-        })
-    }
-}
+  return res.status(200).json({ bookings });
+};
 export const getPropertyBookings = async (req, res) => {
-    try {
-        const { propertyId } = req.params
+  const { propertyId } = req.params;
 
-        const bookings = await Booking.find({ propertyId })
-            .populate("tenantId", "name email phone")
-            .sort({ createdAt: -1 })
+  const bookings = await Booking.find({ propertyId })
+    .populate("tenantId", "name email phone")
+    .sort({ createdAt: -1 });
 
-        return res.status(200).json({ bookings })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Server error",
-            error: error.message,
-        })
-    }
-}
+  return res.status(200).json({ bookings });
+};

@@ -1,33 +1,30 @@
+import AppError from "../../utils/AppError.js";
+
 export const validateCreateBooking = (req, res, next) => {
-    const { propertyId, startDate, endDate } = req.body
+  const { propertyId, startDate, endDate } = req.body;
 
+  if (!propertyId) {
+    return next(new AppError("propertyId is required", 400));
+  }
 
-    if (!propertyId) {
-        return res.status(400).json({ message: "propertyId is required" })
-    }
+  if (!startDate || !endDate) {
+    return next(new AppError("startDate and endDate are required", 400));
+  }
 
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
-    if (!startDate || !endDate) {
-        return res.status(400).json({ message: "startDate and endDate are required" })
-    }
+  if (isNaN(start) || isNaN(end)) {
+    return next(new AppError("Invalid dates", 400));
+  }
 
+  if (start < new Date()) {
+    return next(new AppError("startDate cannot be in the past", 400));
+  }
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+  if (start >= end) {
+    return next(new AppError("startDate must be before endDate", 400));
+  }
 
-    if (isNaN(start) || isNaN(end)) {
-        return res.status(400).json({ message: "Invalid dates" })
-    }
-
-
-    if (start < new Date()) {
-        return res.status(400).json({ message: "startDate cannot be in the past" })
-    }
-
-
-    if (start >= end) {
-        return res.status(400).json({ message: "startDate must be before endDate" })
-    }
-
-    next()
-}
+  next();
+};

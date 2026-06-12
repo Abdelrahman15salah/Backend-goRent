@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import AppError from "../utils/AppError.js";
 
 // export const verifyTenant = (req, res, next) => {
 //   console.log(req.cookies.token);
@@ -68,9 +69,7 @@ export const verifyRole = (requiredRole) => {
   return (req, res, next) => {
     const token = req.cookies?.token;
     if (!token) {
-      return res
-        .status(401)
-        .json({ message: "Access Denied: No token provided" });
+      return next(new AppError("Access Denied: No token provided", 401));
     }
 
     try {
@@ -83,12 +82,12 @@ export const verifyRole = (requiredRole) => {
       ) {
         return next();
       } else {
-        return res
-          .status(403)
-          .json({ message: `user role ${decoded.role} is not authorized` });
+        return next(
+          new AppError(`user role ${decoded.role} is not authorized`, 403),
+        );
       }
     } catch (error) {
-      return res.status(401).json({ message: "Invalid or expired token" });
+      return next(new AppError("Invalid or expired token", 401));
     }
   };
 };
