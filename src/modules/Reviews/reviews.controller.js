@@ -51,9 +51,9 @@ const createReview = async (req, res, next) => {
         return next(new Error("Property not found", { cause: 404 }));
       }
 
-      if (property.status !== "APPROVED") {
+      if (property.status !== "APPROVED" || !property.listingPaid) {
         return next(
-          new Error("Cannot review a non-approved property", { cause: 400 }),
+          new Error("Cannot review a non-approved or unpaid property", { cause: 400 }),
         );
       }
 

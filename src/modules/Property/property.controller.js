@@ -85,7 +85,7 @@ const parseNumber = (value) => {
 };
 
 const buildPropertyFilter = (query) => {
-  const filter = { status: "APPROVED" };
+  const filter = { status: "APPROVED", listingPaid: true };
   const type =
     typeof query.type === "string" ? query.type.toUpperCase() : undefined;
   const minPrice = parseNumber(query.minPrice);
@@ -291,13 +291,16 @@ export const getPropertyById = async (req, res, next) => {
 
     const property = await Property.findOne({
       _id: id,
-      status: "APPROVED",
     }).populate("ownerId", "name email phone profileImage");
 
     if (!property) {
       // return res.status(404).json({ message: "Property not found" });
 
       return next(new Error("Property not found", { cause: 404 }));
+    }
+
+    if (property.status !== "APPROVED" || !property.listingPaid) {
+      return next(new Error("Property is not available", { cause: 403 }));
     }
 
     property.views = (property.views || 0) + 1;

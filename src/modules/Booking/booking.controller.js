@@ -42,7 +42,7 @@ export const createBooking = async (req, res, next) => {
       return next(new Error("Property not found", { cause: 404 }));
     }
 
-    if (property.status !== "APPROVED") {
+    if (property.status !== "APPROVED" || !property.listingPaid) {
       return next(
         new Error("Property is not available for booking", { cause: 400 }),
       );

@@ -24,16 +24,16 @@ export const createOrGetThread = async (req, res, next) => {
     }
 
     const property = await Property.findById(propertyId).select(
-      "ownerId title status",
+      "ownerId title status listingPaid",
     );
 
     if (!property) {
       return next(new Error("Property not found", { cause: 404 }));
     }
 
-    if (property.status !== "APPROVED") {
+    if (property.status !== "APPROVED" || !property.listingPaid) {
       return next(
-        new Error("Cannot start a chat for a non-approved property", {
+        new Error("Cannot start a chat for a non-approved or unpaid property", {
           cause: 400,
         }),
       );

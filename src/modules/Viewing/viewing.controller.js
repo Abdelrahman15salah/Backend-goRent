@@ -16,7 +16,7 @@ export const createViewing = async (req, res) => {
         }
 
 
-        if (property.status !== "APPROVED") {
+        if (property.status !== "APPROVED" || !property.listingPaid) {
             return res.status(400).json({ message: "Property is not available" })
         }
 
