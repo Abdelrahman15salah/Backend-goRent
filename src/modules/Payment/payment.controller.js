@@ -4,7 +4,7 @@ import Booking from "../../DB/Models/booking.model.js";
 import Property from "../../DB/Models/property.model.js";
 import User from "../../DB/Models/user.model.js";
 import { initiatePayment } from "./paymob.service.js";
-import { calculateBookingFeeEGP, LISTING_FEE_EGP } from "../../utils/calculateBookingFee.js";
+import { calculateBookingFeeEGP } from "../../utils/calculateBookingFee.js";
 
 
 const buildBillingData = (user) => {
@@ -42,6 +42,10 @@ export const initiateListingFeePayment = async (req, res, next) => {
             return next(new Error("Not authorized", { cause: 403 }));
         }
 
+        if (property.status !== "APPROVED") {
+            return next(new Error("يجب ان يتم المواقفة علي العقار قبل الدفع", { cause: 403 }));
+        }
+
         // Don't let an owner pay twice for the same property.
         const existingSuccess = await Payment.findOne({
             propertyId,
@@ -49,7 +53,7 @@ export const initiateListingFeePayment = async (req, res, next) => {
             status: "success",
         });
         if (existingSuccess) {
-            return next(new Error("Listing fee already paid for this property", { cause: 400 }));
+            return next(new Error("الرسوم مدفوعة بالفعل لهذا العقار", { cause: 400 }));
         }
 
         const owner = await User.findById(ownerId);
@@ -58,19 +62,25 @@ export const initiateListingFeePayment = async (req, res, next) => {
         // before the Payment document actually exists.
         const paymentId = new mongoose.Types.ObjectId();
 
+        const platformFeeEGP = Math.round((property.pricePerMonth || 0) * 0.10 * 100) / 100;
+        
+        if (platformFeeEGP <= 0) {
+            return next(new Error("رسوم المنصة المحسوبة تساوي صفر، لا يمكن إتمام الدفع", { cause: 400 }));
+        }
+
         const payment = await Payment.create({
             _id: paymentId,
             type: "LISTING_FEE",
             propertyId,
             userId: ownerId,
-            amount: LISTING_FEE_EGP,
+            amount: platformFeeEGP,
             merchantOrderId: paymentId.toString(),
             status: "pending",
         });
 
         try {
             const { paymentUrl, paymentKey, providerOrderId } = await initiatePayment({
-                amountEGP: LISTING_FEE_EGP,
+                amountEGP: platformFeeEGP,
                 merchantOrderId: payment.merchantOrderId,
                 billingData: buildBillingData(owner),
             });

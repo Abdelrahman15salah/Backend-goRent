@@ -73,8 +73,9 @@ export const calculateBookingFeeEGP = (startDate, endDate, property) => {
 
     const totalStayValue = calculateTotalStayValue(nights, property);
     const fee = totalStayValue * 0.10;
+    const finalAmount = totalStayValue + fee;
 
-    const finalFee = Math.round(fee * 100) / 100;
+    const finalFee = Math.round(finalAmount * 100) / 100;
 
     // 2. Paymob بترفض أي مبلغ أقل من أو يساوي صفر
     if (finalFee <= 0) {
