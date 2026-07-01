@@ -25,7 +25,7 @@ const storage = multer.memoryStorage();
 
 const imageFileFilter = (req, file, callback) => {
   if (!file.mimetype.startsWith("image/")) {
-    return callback(new Error("Only image files are allowed"), false);
+    return callback(new Error("عذراً، يُسمح فقط برفع الصور."), false);
   }
 
   callback(null, true);

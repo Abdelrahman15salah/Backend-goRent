@@ -17,7 +17,7 @@ export const createOrGetThread = async (req, res, next) => {
 
     if (req.user.role !== "tenant") {
       return next(
-        new Error("Only tenants can start a chat about a property", {
+        new Error("يمكن للمستأجرين فقط بدء محادثة حول العقار.", {
           cause: 403,
         }),
       );
@@ -28,12 +28,12 @@ export const createOrGetThread = async (req, res, next) => {
     );
 
     if (!property) {
-      return next(new Error("Property not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
     }
 
     if (property.status !== "APPROVED") {
       return next(
-        new Error("Cannot start a chat for a non-approved property", {
+        new Error("لا يمكن بدء محادثة لعقار غير مقبول بعد.", {
           cause: 400,
         }),
       );
@@ -41,7 +41,7 @@ export const createOrGetThread = async (req, res, next) => {
 
     if (property.ownerId.toString() === tenantId.toString()) {
       return next(
-        new Error("You cannot start a chat with yourself", { cause: 400 }),
+        new Error("لا يمكنك بدء محادثة مع نفسك.", { cause: 400 }),
       );
     }
 

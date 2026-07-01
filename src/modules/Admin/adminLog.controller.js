@@ -75,6 +75,6 @@ export const getLogs = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching admin logs:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "حدث خطأ غير متوقع في الخادم، يرجى المحاولة لاحقاً." });
   }
 };

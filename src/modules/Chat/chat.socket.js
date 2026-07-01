@@ -167,19 +167,19 @@ export const initChatSocket = (io) => {
       const token = parseTokenFromHandshake(socket.handshake);
 
       if (!token) {
-        return next(new Error("Authentication required"));
+        return next(new Error("يرجى تسجيل الدخول للمتابعة."));
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       if (!["tenant", "owner", "admin", "superadmin"].includes(decoded.role)) {
-        return next(new Error("Unauthorized role"));
+        return next(new Error("عذراً، ليس لديك الصلاحيات الكافية لهذا الإجراء."));
       }
 
       socket.user = decoded;
       next();
     } catch {
-      next(new Error("Invalid or expired token"));
+      next(new Error("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى."));
     }
   });
 
@@ -223,11 +223,11 @@ export const initChatSocket = (io) => {
         const trimmedText = text?.trim() || "";
 
         if (!trimmedText && !attachmentUrl) {
-          throw new Error("Message text or attachment is required");
+          throw new Error("يرجى كتابة رسالة أو إرفاق ملف للتمكن من الإرسال.");
         }
 
         if (trimmedText.length > 2000) {
-          throw new Error("Message must be 2000 characters or fewer");
+          throw new Error("يجب ألا تتجاوز الرسالة 2000 حرف.");
         }
 
         const message = await createChatMessage({

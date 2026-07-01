@@ -3,12 +3,12 @@ export const validateCreateBooking = (req, res, next) => {
 
 
     if (!propertyId) {
-        return res.status(400).json({ message: "propertyId is required" })
+        return res.status(400).json({ message: "يرجى تحديد العقار المطلوب." })
     }
 
 
     if (!startDate || !endDate) {
-        return res.status(400).json({ message: "startDate and endDate are required" })
+        return res.status(400).json({ message: "يرجى تحديد تاريخ البداية وتاريخ النهاية." })
     }
 
 
@@ -16,17 +16,17 @@ export const validateCreateBooking = (req, res, next) => {
     const end = new Date(endDate)
 
     if (isNaN(start) || isNaN(end)) {
-        return res.status(400).json({ message: "Invalid dates" })
+        return res.status(400).json({ message: "التواريخ المدخلة غير صحيحة." })
     }
 
 
     if (start < new Date()) {
-        return res.status(400).json({ message: "startDate cannot be in the past" })
+        return res.status(400).json({ message: "تاريخ البداية لا يمكن أن يكون في الماضي." })
     }
 
 
     if (start >= end) {
-        return res.status(400).json({ message: "startDate must be before endDate" })
+        return res.status(400).json({ message: "تاريخ البداية يجب أن يكون قبل تاريخ النهاية." })
     }
 
     next()

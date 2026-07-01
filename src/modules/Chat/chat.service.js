@@ -15,13 +15,13 @@ export const getThreadForUser = async (threadId, userId) => {
   const thread = await ChatThread.findById(threadId);
 
   if (!thread) {
-    const error = new Error("Chat thread not found");
+    const error = new Error("لم نتمكن من العثور على المحادثة.");
     error.cause = 404;
     throw error;
   }
 
   if (!isThreadParticipant(thread, userId)) {
-    const error = new Error("Not authorized");
+    const error = new Error("ليس لديك الصلاحية لإجراء هذا التعديل.");
     error.cause = 403;
     throw error;
   }

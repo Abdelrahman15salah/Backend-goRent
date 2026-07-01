@@ -35,15 +35,15 @@ export const initiateListingFeePayment = async (req, res, next) => {
 
         const property = await Property.findById(propertyId);
         if (!property) {
-            return next(new Error("Property not found", { cause: 404 }));
+            return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
         }
 
         if (property.ownerId.toString() !== ownerId.toString()) {
-            return next(new Error("Not authorized", { cause: 403 }));
+            return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
         }
 
         if (property.status !== "APPROVED") {
-            return next(new Error("يجب ان يتم المواقفة علي العقار قبل الدفع", { cause: 403 }));
+            return next(new Error("يجب الموافقة على العقار من قبل الإدارة قبل إتمام الدفع.", { cause: 403 }));
         }
 
         // Don't let an owner pay twice for the same property.
@@ -53,7 +53,7 @@ export const initiateListingFeePayment = async (req, res, next) => {
             status: "success",
         });
         if (existingSuccess) {
-            return next(new Error("الرسوم مدفوعة بالفعل لهذا العقار", { cause: 400 }));
+            return next(new Error("تم سداد الرسوم لهذا العقار مسبقاً.", { cause: 400 }));
         }
 
         const owner = await User.findById(ownerId);
@@ -65,7 +65,7 @@ export const initiateListingFeePayment = async (req, res, next) => {
         const platformFeeEGP = Math.round((property.pricePerMonth || 0) * 0.10 * 100) / 100;
         
         if (platformFeeEGP <= 0) {
-            return next(new Error("رسوم المنصة المحسوبة تساوي صفر، لا يمكن إتمام الدفع", { cause: 400 }));
+            return next(new Error("رسوم المنصة غير متوفرة، لا يمكن إتمام الدفع.", { cause: 400 }));
         }
 
         const payment = await Payment.create({
@@ -114,11 +114,11 @@ export const initiateBookingFeePayment = async (req, res, next) => {
 
         const booking = await Booking.findById(bookingId).populate("propertyId");
         if (!booking) {
-            return next(new Error("Booking not found", { cause: 404 }));
+            return next(new Error("لم نتمكن من العثور على هذا الحجز.", { cause: 404 }));
         }
 
         if (booking.tenantId.toString() !== tenantId.toString()) {
-            return next(new Error("Not authorized", { cause: 403 }));
+            return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
         }
 
         if (booking.status !== "PENDING_PAYMENT") {
@@ -135,7 +135,7 @@ export const initiateBookingFeePayment = async (req, res, next) => {
             status: "success",
         });
         if (existingSuccess) {
-            return next(new Error("This booking has already been paid for", { cause: 400 }));
+            return next(new Error("تم دفع رسوم هذا الحجز مسبقاً.", { cause: 400 }));
         }
 
         const tenant = await User.findById(tenantId);
@@ -195,7 +195,7 @@ export const handleWebhook = async (req, res, next) => {
         const merchant_order_id = obj.order?.merchant_order_id;
 
         if (!merchant_order_id) {
-            return res.status(200).json({ message: "No merchant_order_id" });
+            return res.status(200).json({ message: "رقم طلب الدفع غير موجود." });
         }
 
         // HMAC verification — production only
@@ -234,13 +234,13 @@ export const handleWebhook = async (req, res, next) => {
                     .digest("hex");
 
                 if (expectedHmac !== receivedHmac) {
-                    return res.status(401).json({ message: "Invalid HMAC" });
+                    return res.status(401).json({ message: "توقيع عملية الدفع غير صالح." });
                 }
             }
         }
 
         const payment = await Payment.findOne({ merchantOrderId: merchant_order_id });
-        if (!payment) return res.status(200).json({ message: "Payment not found" });
+        if (!payment) return res.status(200).json({ message: "لم يتم العثور على عملية الدفع." });
 
         payment.paymobTransactionId = transactionId?.toString();
         payment.webhookPayload = obj;

@@ -28,7 +28,7 @@ const reviewSchema = new mongoose.Schema(
       max: 5,
       validate: {
         validator: Number.isInteger,
-        message: "{VALUE} is not an integer rating.",
+        message: "قيمة التقييم المدخلة غير صحيحة.",
       },
     },
     comment: {

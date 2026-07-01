@@ -14,19 +14,19 @@ const createReview = async (req, res, next) => {
 
     if (!targetType || !allowedTypes.includes(targetType)) {
       return next(
-        new Error("targetType must be PROPERTY, OWNER, or TENANT", {
+        new Error("النوع المستهدف غير صالح.", {
           cause: 400,
         }),
       );
     }
 
     if (rating === undefined || rating === null) {
-      return next(new Error("rating is required", { cause: 400 }));
+      return next(new Error("يرجى إعطاء تقييم أولاً.", { cause: 400 }));
     }
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return next(
-        new Error("rating must be an integer between 1 and 5", { cause: 400 }),
+        new Error("التقييم يجب أن يكون بين 1 و 5 نجوم.", { cause: 400 }),
       );
     }
 
@@ -35,31 +35,31 @@ const createReview = async (req, res, next) => {
     if (targetType === "PROPERTY") {
       if (!propertyId) {
         return next(
-          new Error("propertyId is required for PROPERTY review", {
+          new Error("مطلوب تحديد العقار لإضافة التقييم.", {
             cause: 400,
           }),
         );
       }
 
       if (!mongoose.Types.ObjectId.isValid(propertyId)) {
-        return next(new Error("Invalid propertyId", { cause: 400 }));
+        return next(new Error("معرف العقار للتقييم غير صالح.", { cause: 400 }));
       }
 
       property = await Property.findById(propertyId);
 
       if (!property) {
-        return next(new Error("Property not found", { cause: 404 }));
+        return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
       }
 
       if (property.status !== "APPROVED") {
         return next(
-          new Error("Cannot review a non-approved property", { cause: 400 }),
+          new Error("لا يمكن تقييم عقار غير معتمد.", { cause: 400 }),
         );
       }
 
       if (property.ownerId.toString() === authorId) {
         return next(
-          new Error("You cannot review your own property", { cause: 403 }),
+          new Error("لا يمكنك تقييم عقارك الخاص.", { cause: 403 }),
         );
       }
 
@@ -71,7 +71,7 @@ const createReview = async (req, res, next) => {
 
       if (existing) {
         return next(
-          new Error("You already reviewed this property", { cause: 409 }),
+          new Error("لقد قمت بتقييم هذا العقار مسبقاً.", { cause: 409 }),
         );
       }
     }
@@ -79,18 +79,18 @@ const createReview = async (req, res, next) => {
     if (targetType === "OWNER" || targetType === "TENANT") {
       if (!targetUserId) {
         return next(
-          new Error("targetUserId is required for user review", {
+          new Error("يرجى تحديد المستخدم للتقييم.", {
             cause: 400,
           }),
         );
       }
 
       if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
-        return next(new Error("Invalid targetUserId", { cause: 400 }));
+        return next(new Error("معرف المستخدم للتقييم غير صالح.", { cause: 400 }));
       }
 
       if (targetUserId === authorId) {
-        return next(new Error("You cannot review yourself", { cause: 403 }));
+        return next(new Error("لا يمكنك تقييم نفسك.", { cause: 403 }));
       }
 
       const existing = await Review.findOne({
@@ -101,7 +101,7 @@ const createReview = async (req, res, next) => {
 
       if (existing) {
         return next(
-          new Error("You already reviewed this user", { cause: 409 }),
+          new Error("لقد قمت بتقييم هذا المستخدم مسبقاً.", { cause: 409 }),
         );
       }
     }
@@ -168,7 +168,7 @@ const getReviews = async (req, res, next) => {
       const allowedTypes = ["PROPERTY", "OWNER", "TENANT"];
       if (!allowedTypes.includes(targetType)) {
         return next(
-          new Error("targetType must be PROPERTY, OWNER, or TENANT", {
+          new Error("النوع المستهدف غير صالح.", {
             cause: 400,
           }),
         );
@@ -178,14 +178,14 @@ const getReviews = async (req, res, next) => {
 
     if (propertyId) {
       if (!mongoose.Types.ObjectId.isValid(propertyId)) {
-        return next(new Error("Invalid propertyId", { cause: 400 }));
+        return next(new Error("معرف العقار للتقييم غير صالح.", { cause: 400 }));
       }
       filter.propertyId = propertyId;
     }
 
     if (targetUserId) {
       if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
-        return next(new Error("Invalid targetUserId", { cause: 400 }));
+        return next(new Error("معرف المستخدم للتقييم غير صالح.", { cause: 400 }));
       }
       filter.targetUserId = targetUserId;
     }
@@ -258,18 +258,18 @@ const updateReview = async (req, res) => {
     const { rating, comment } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(new Error("Invalid review ID", { cause: 400 }));
+      return next(new Error("معرف التقييم غير صالح.", { cause: 400 }));
     }
 
     const review = await Review.findById(id);
 
     if (!review) {
-      return next(new Error("Review not found", { cause: 404 }));
+      return next(new Error("التقييم غير موجود.", { cause: 404 }));
     }
 
     if (review.authorId.toString() !== req.user.id) {
       return next(
-        new Error("You are not authorized to edit this review", {
+        new Error("ليس لديك الصلاحية لتعديل هذا التقييم.", {
           cause: 403,
         }),
       );
@@ -278,7 +278,7 @@ const updateReview = async (req, res) => {
     if (rating !== undefined) {
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
         return next(
-          new Error("rating must be an integer between 1 and 5", {
+          new Error("التقييم يجب أن يكون بين 1 و 5 نجوم.", {
             cause: 400,
           }),
         );

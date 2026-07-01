@@ -93,10 +93,10 @@ const paymentSchema = new mongoose.Schema(
 // — a BOOKING_FEE payment with no bookingId (or vice versa) is invalid data.
 paymentSchema.pre("save", function () {
     if (this.type === "LISTING_FEE" && !this.propertyId) {
-        throw new Error("propertyId is required for LISTING_FEE payments");
+        throw new Error("مطلوب معرف العقار لإتمام عملية الدفع.");
     }
     if (this.type === "BOOKING_FEE" && !this.bookingId) {
-        throw new Error("bookingId is required for BOOKING_FEE payments");
+        throw new Error("مطلوب معرف الحجز لإتمام عملية الدفع.");
     }
 });
 

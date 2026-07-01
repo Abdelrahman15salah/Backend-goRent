@@ -31,7 +31,7 @@ export const markAsRead = async (req, res, next) => {
     );
 
     if (!notification) {
-      return next(new Error("Notification not found", { cause: 404 }));
+      return next(new Error("الإشعار غير موجود.", { cause: 404 }));
     }
 
     return res.status(200).json({ notification });
