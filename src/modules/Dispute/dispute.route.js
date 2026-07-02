@@ -11,6 +11,7 @@ router.post(
   validateCreateDispute,
   DC.createDispute,
 );
+router.get("/eligibility/:propertyId", verifyAuth, DC.checkEligibility);
 router.get("/", verifyAuth, verifyRole(["admin"]), DC.getDisputes);
 router.get("/my", verifyAuth, DC.getMyDisputes);
 router.get("/:id", verifyAuth, verifyRole(["admin"]), DC.getDisputeById);
