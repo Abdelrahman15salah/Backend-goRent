@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Property from "../../DB/Models/property.model.js";
 import {logAdminAction} from "../Admin/adminLog.controller.js";
 import Dispute from "../../DB/Models/dispute.model.js";
-
+import Booking from "../../DB/Models/booking.model.js";
 
 export const createDispute = async (req, res , next) => {
     try {
@@ -18,8 +18,15 @@ export const createDispute = async (req, res , next) => {
             return next(new Error("لم نتمكن من العثور على هذا العقار.",{cause:404}))
         }
 
-        if(propertyId.toString() === tenantId.toString()){
-            return next(new Error("لا يمكنك الإبلاغ عن عقارك الخاص.",{cause:409}))
+        const isOwner = property.ownerId.toString() === tenantId.toString();
+        const bookingQuery = { propertyId, status: "RESERVED" };
+        if (!isOwner) {
+            bookingQuery.tenantId = tenantId;
+        }
+
+        const validBooking = await Booking.findOne(bookingQuery);
+        if (!validBooking) {
+            return next(new Error("لا يمكنك الإبلاغ عن هذا العقار إلا إذا كان لديك حجز مؤكد له.", {cause: 403}));
         }
 
         const dispute = await Dispute.create({
@@ -32,6 +39,34 @@ export const createDispute = async (req, res , next) => {
         return res.status(201).json({message:"dispute created successfully",dispute,})
     }
     catch (error) {return next(error);}
+};
+
+export const checkEligibility = async (req, res, next) => {
+    try {
+        const { propertyId } = req.params;
+        const userId = req.user.id;
+
+        if(!mongoose.Types.ObjectId.isValid(propertyId)){
+            return res.status(400).json({ eligible: false });
+        }
+
+        const property = await Property.findById(propertyId);
+        if(!property){
+            return res.status(404).json({ eligible: false });
+        }
+
+        const isOwner = property.ownerId.toString() === userId.toString();
+        const bookingQuery = { propertyId, status: "RESERVED" };
+        if (!isOwner) {
+            bookingQuery.tenantId = userId;
+        }
+
+        const validBooking = await Booking.findOne(bookingQuery);
+        
+        return res.status(200).json({ eligible: !!validBooking });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 export const getDisputes = async (req , res , next ) =>{
