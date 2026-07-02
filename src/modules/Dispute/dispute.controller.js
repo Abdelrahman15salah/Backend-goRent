@@ -10,16 +10,16 @@ export const createDispute = async (req, res , next) => {
         const tenantId = req.user.id;
 
         if(!mongoose.Types.ObjectId.isValid(propertyId)){
-            return  next(new Error("invalid property id",{cause:404}))
+            return  next(new Error("معرف العقار غير صالح.",{cause:404}))
         }
 
         const property = await Property.findById(propertyId)
         if(!property){
-            return next(new Error("property not found",{cause:404}))
+            return next(new Error("لم نتمكن من العثور على هذا العقار.",{cause:404}))
         }
 
         if(propertyId.toString() === tenantId.toString()){
-            return next(new Error("you can't report your own property",{cause:409}))
+            return next(new Error("لا يمكنك الإبلاغ عن عقارك الخاص.",{cause:409}))
         }
 
         const dispute = await Dispute.create({

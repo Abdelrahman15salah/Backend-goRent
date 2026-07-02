@@ -18,15 +18,15 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return next(new Error("Email and password are required", { cause: 400 }));
+      return next(new Error("يرجى إدخال البريد الإلكتروني وكلمة المرور للمتابعة.", { cause: 400 }));
     }
     const user = await User.findOne({ email });
     if (!user) {
-      return next(new Error("User not found", { cause: 404 }));
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return next(new Error("Invalid credentials", { cause: 400 }));
+      return next(new Error("بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى.", { cause: 400 }));
     }
     const token = JWT.sign(
       { id: user._id, role: user.role, name: user.name },
@@ -48,12 +48,12 @@ const register = async (req, res, next) => {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
       return next(
-        new Error("Name, email, and password are required", { cause: 400 }),
+        new Error("يرجى إدخال جميع البيانات المطلوبة (الاسم، البريد، كلمة المرور).", { cause: 400 }),
       );
     }
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(new Error("User already exists", { cause: 400 }));
+      return next(new Error("هذا البريد الإلكتروني مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة.", { cause: 400 }));
     }
 
     let profileImage = "";
@@ -65,7 +65,7 @@ const register = async (req, res, next) => {
       } catch (err) {
         console.error("Failed to upload profile image:", err);
         return res.status(500).json({
-          message: "Server error",
+          message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
           error: err.message || "Cloudinary upload failed",
           http_code: err.http_code || null,
         });
@@ -86,7 +86,7 @@ const logout = async (req, res) => {
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -98,15 +98,15 @@ const getCurrentUser = async (req, res) => {
 
     if (!user) {
       // return res.status(404).json({
-      //   message: "User not found",
+      //   message: "عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.",
       // });
-      return next(new Error("User not found", { cause: 404 }));
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
 return res.status(200).json({ message: "Login successful", user });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -117,7 +117,7 @@ const getSocketToken = async (req, res, next) => {
     const token = req.cookies?.token;
 
     if (!token) {
-      return next(new Error("No token provided", { cause: 401 }));
+      return next(new Error("عذراً، يجب تسجيل الدخول للقيام بهذا الإجراء.", { cause: 401 }));
     }
 
     return res.status(200).json({ token });
@@ -130,12 +130,12 @@ const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     if (!email) {
-      return next(new Error("Email is required", { cause: 400 }));
+      return next(new Error("يرجى إدخال البريد الإلكتروني.", { cause: 400 }));
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return next(new Error("User not found", { cause: 404 }));
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -172,12 +172,12 @@ const verifyOTP = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
-      return next(new Error("Email and OTP are required", { cause: 400 }));
+      return next(new Error("يرجى إدخال البريد الإلكتروني ورمز التحقق.", { cause: 400 }));
     }
 
     const validOtp = await OTP.findOne({ email, otp });
     if (!validOtp) {
-      return next(new Error("Invalid or expired verification code", { cause: 400 }));
+      return next(new Error("رمز التحقق غير صحيح أو منتهي الصلاحية، يرجى طلب رمز جديد.", { cause: 400 }));
     }
 
     return res.status(200).json({ message: "OTP verified successfully" });
@@ -190,17 +190,17 @@ const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return next(new Error("Email, OTP, and new password are required", { cause: 400 }));
+      return next(new Error("يرجى تعبئة جميع الحقول المطلوبة لتغيير كلمة المرور.", { cause: 400 }));
     }
 
     const validOtp = await OTP.findOne({ email, otp });
     if (!validOtp) {
-      return next(new Error("Invalid or expired verification code", { cause: 400 }));
+      return next(new Error("رمز التحقق غير صحيح أو منتهي الصلاحية، يرجى طلب رمز جديد.", { cause: 400 }));
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return next(new Error("User not found", { cause: 404 }));
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
     user.password = newPassword;

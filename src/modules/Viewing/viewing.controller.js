@@ -12,17 +12,17 @@ export const createViewing = async (req, res) => {
 
         const property = await Property.findById(propertyId)
         if (!property) {
-            return res.status(404).json({ message: "Property not found" })
+            return res.status(404).json({ message: "لم نتمكن من العثور على هذا العقار." })
         }
 
 
         if (property.status !== "APPROVED") {
-            return res.status(400).json({ message: "Property is not available" })
+            return res.status(400).json({ message: "عذراً، هذا العقار غير متاح في الوقت الحالي." })
         }
 
 
         if (property.ownerId.toString() === tenantId.toString()) {
-            return res.status(400).json({ message: "You cannot request a viewing for your own property" })
+            return res.status(400).json({ message: "لا يمكنك طلب معاينة لعقار تملكه بالفعل." })
         }
 
 
@@ -32,7 +32,7 @@ export const createViewing = async (req, res) => {
             status: "PENDING"
         })
         if (existing) {
-            return res.status(400).json({ message: "You already have a pending viewing for this property" })
+            return res.status(400).json({ message: "لديك بالفعل طلب معاينة قيد الانتظار لهذا العقار." })
         }
 
         const viewing = await Viewing.create({
@@ -65,7 +65,7 @@ export const createViewing = async (req, res) => {
         })
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message })
+        return res.status(500).json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message })
     }
 }
 
@@ -77,17 +77,17 @@ export const acceptViewing = async (req, res) => {
 
         const viewing = await Viewing.findById(id)
         if (!viewing) {
-            return res.status(404).json({ message: "Viewing not found" })
+            return res.status(404).json({ message: "لم يتم العثور على طلب المعاينة." })
         }
 
 
         if (viewing.ownerId.toString() !== ownerId.toString()) {
-            return res.status(403).json({ message: "Not authorized" })
+            return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." })
         }
 
 
         if (viewing.status !== "PENDING") {
-            return res.status(400).json({ message: "Viewing is not pending" })
+            return res.status(400).json({ message: "طلب المعاينة هذا لم يعد قيد الانتظار." })
         }
 
         viewing.status = "ACCEPTED"
@@ -111,7 +111,7 @@ export const acceptViewing = async (req, res) => {
         return res.status(200).json({ message: "Viewing accepted", viewing })
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message })
+        return res.status(500).json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message })
     }
 }
 
@@ -123,15 +123,15 @@ export const rejectViewing = async (req, res) => {
 
         const viewing = await Viewing.findById(id)
         if (!viewing) {
-            return res.status(404).json({ message: "Viewing not found" })
+            return res.status(404).json({ message: "لم يتم العثور على طلب المعاينة." })
         }
 
         if (viewing.ownerId.toString() !== ownerId.toString()) {
-            return res.status(403).json({ message: "Not authorized" })
+            return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." })
         }
 
         if (viewing.status !== "PENDING") {
-            return res.status(400).json({ message: "Viewing is not pending" })
+            return res.status(400).json({ message: "طلب المعاينة هذا لم يعد قيد الانتظار." })
         }
 
         viewing.status = "REJECTED"
@@ -140,7 +140,7 @@ export const rejectViewing = async (req, res) => {
         return res.status(200).json({ message: "Viewing rejected", viewing })
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message })
+        return res.status(500).json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message })
     }
 }
 
@@ -152,16 +152,16 @@ export const completeViewing = async (req, res) => {
 
         const viewing = await Viewing.findById(id)
         if (!viewing) {
-            return res.status(404).json({ message: "Viewing not found" })
+            return res.status(404).json({ message: "لم يتم العثور على طلب المعاينة." })
         }
 
         if (viewing.ownerId.toString() !== ownerId.toString()) {
-            return res.status(403).json({ message: "Not authorized" })
+            return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." })
         }
 
 
         if (viewing.status !== "ACCEPTED") {
-            return res.status(400).json({ message: "Viewing must be accepted first" })
+            return res.status(400).json({ message: "يجب قبول المعاينة أولاً." })
         }
 
         viewing.status = "COMPLETED"
@@ -170,7 +170,7 @@ export const completeViewing = async (req, res) => {
         return res.status(200).json({ message: "Viewing completed", viewing })
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message })
+        return res.status(500).json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message })
     }
 }
 
@@ -186,7 +186,7 @@ export const getTenantViewings = async (req, res) => {
         return res.status(200).json({ viewings })
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message })
+        return res.status(500).json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message })
     }
 }
 
@@ -203,6 +203,6 @@ export const getOwnerViewings = async (req, res) => {
         return res.status(200).json({ viewings })
 
     } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message })
+        return res.status(500).json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message })
     }
 }

@@ -58,22 +58,22 @@ export const getUserById = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      // return res.status(400).json({ message: "Invalid user id" });
-      return next(new Error("Invalid user id", { cause: 400 }));
+      // return res.status(400).json({ message: "المعرف الخاص بالمستخدم غير صالح." });
+      return next(new Error("المعرف الخاص بالمستخدم غير صالح.", { cause: 400 }));
     }
     const isSelf = id.toString() === req.user.id.toString();
     const isAdmin = req.user.role === "admin" || req.user.role === "superadmin";
 
     if (!isSelf && !isAdmin) {
-      // return res.status(403).json({ message: "Not authorized" });
-      return next(new Error("Not authorized", { cause: 403 }));
+      // return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." });
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     const user = await User.findById(id).select("-password");
 
     if (!user) {
-      // return res.status(404).json({ message: "User not found" });
-      return next(new Error("User not found", { cause: 404 }));
+      // return res.status(404).json({ message: "عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة." });
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
     return res.status(200).json({ user });
@@ -88,8 +88,8 @@ export const createUser = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      // return res.status(400).json({ message: "User already exists" });
-      return next(new Error("User already exists", { cause: 400 }));
+      // return res.status(400).json({ message: "هذا البريد الإلكتروني مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة." });
+      return next(new Error("هذا البريد الإلكتروني مسجل مسبقاً، يمكنك تسجيل الدخول مباشرة.", { cause: 400 }));
     }
 
     let profileImage = "";
@@ -101,7 +101,7 @@ export const createUser = async (req, res) => {
       } catch (err) {
         // console.log("Failed to upload profile image:", err);
         return res.status(500).json({
-          message: "Server error",
+          message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
           error: err.message || "Cloudinary upload failed",
           http_code: err.http_code || null,
         });
@@ -115,7 +115,7 @@ export const createUser = async (req, res) => {
   } catch (error) {
     return res
       .status(500)
-      .json({ message: "Server error", error: error.message });
+      .json({ message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.", error: error.message });
   }
 };
 
@@ -124,23 +124,23 @@ export const updateUser = async (req, res, next) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      // return res.status(400).json({ message: "Invalid user id" });
-      return next(new Error("Invalid user id", { cause: 400 }));
+      // return res.status(400).json({ message: "المعرف الخاص بالمستخدم غير صالح." });
+      return next(new Error("المعرف الخاص بالمستخدم غير صالح.", { cause: 400 }));
     }
     const isSelf = id.toString() === req.user.id.toString();
     const isSuperAdmin = req.user.role === "superadmin";
     const isAdmin = req.user.role === "admin";
 
     if (!isSelf && !isAdmin && !isSuperAdmin) {
-      // return res.status(403).json({ message: "Not authorized" });
-      return next(new Error("Not authorized", { cause: 403 }));
+      // return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." });
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     const user = await User.findById(id);
 
     if (!user) {
-      // return res.status(404).json({ message: "User not found" });
-      return next(new Error("User not found", { cause: 404 }));
+      // return res.status(404).json({ message: "عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة." });
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
     const updatableFields = ["name", "phone"];
@@ -165,7 +165,7 @@ export const updateUser = async (req, res, next) => {
       } catch (err) {
         console.error("Failed to upload profile image:", err);
         return res.status(500).json({
-          message: "Server error",
+          message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
           error: err.message || "Cloudinary upload failed",
           http_code: err.http_code || null,
         });
@@ -188,37 +188,37 @@ export const changePassword = async (req, res, next) => {
 
     // Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
-      return next(new Error("All fields are required", { cause: 400 }));
+      return next(new Error("يرجى تعبئة جميع الحقول.", { cause: 400 }));
     }
 
     if (newPassword.length < 8) {
-      return next(new Error("New password must be at least 8 characters", { cause: 400 }));
+      return next(new Error("يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل.", { cause: 400 }));
     }
 
     if (newPassword === currentPassword) {
-      return next(new Error("New password must be different from current password", { cause: 400 }));
+      return next(new Error("كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية.", { cause: 400 }));
     }
 
     if (newPassword !== confirmPassword) {
-      return next(new Error("New password and confirm password do not match", { cause: 400 }));
+      return next(new Error("كلمة المرور الجديدة وتأكيدها غير متطابقين.", { cause: 400 }));
     }
 
     // Authorization
     const isSelf = id.toString() === req.user.id.toString();
     if (!isSelf) {
-      return next(new Error("Not authorized", { cause: 403 }));
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     // Find user
     const user = await User.findById(id);
     if (!user) {
-      return next(new Error("User not found", { cause: 404 }));
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
     // Verify current password
     const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
-      return next(new Error("Current password is incorrect", { cause: 400 }));
+      return next(new Error("كلمة المرور الحالية غير صحيحة.", { cause: 400 }));
     }
 
     // Update password
@@ -288,7 +288,7 @@ export const banUser = async (req, res, next) => {
     });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
