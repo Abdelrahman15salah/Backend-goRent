@@ -198,49 +198,64 @@ export const handleWebhook = async (req, res, next) => {
             return res.status(200).json({ message: "رقم طلب الدفع غير موجود." });
         }
 
-        // HMAC verification — production only
-        if (process.env.NODE_ENV === "production") {
-            const hmacSecret = process.env.PAYMOB_HMAC_SECRET;
-            const receivedHmac = req.query.hmac;
+        // HMAC verification
+        const hmacSecret = process.env.PAYMOB_HMAC_SECRET;
+        const receivedHmac = req.query.hmac;
 
-            if (hmacSecret && receivedHmac) {
-                const crypto = await import("crypto");
-                const data = [
-                    obj.amount_cents,
-                    obj.created_at,
-                    obj.currency,
-                    obj.error_occured,
-                    obj.has_parent_transaction,
-                    obj.id,
-                    obj.integration_id,
-                    obj.is_3d_secure,
-                    obj.is_auth,
-                    obj.is_capture,
-                    obj.is_refunded,
-                    obj.is_standalone_payment,
-                    obj.is_voided,
-                    obj.order?.id,
-                    obj.owner,
-                    obj.pending,
-                    obj.source_data?.pan,
-                    obj.source_data?.sub_type,
-                    obj.source_data?.type,
-                    obj.success,
-                ].join("");
+        if (hmacSecret && receivedHmac) {
+            const crypto = await import("crypto");
+            const data = [
+                obj.amount_cents,
+                obj.created_at,
+                obj.currency,
+                obj.error_occured,
+                obj.has_parent_transaction,
+                obj.id,
+                obj.integration_id,
+                obj.is_3d_secure,
+                obj.is_auth,
+                obj.is_capture,
+                obj.is_refunded,
+                obj.is_standalone_payment,
+                obj.is_voided,
+                obj.order?.id,
+                obj.owner,
+                obj.pending,
+                obj.source_data?.pan,
+                obj.source_data?.sub_type,
+                obj.source_data?.type,
+                obj.success,
+            ].join("");
 
-                const expectedHmac = crypto.default
-                    .createHmac("sha512", hmacSecret)
-                    .update(data)
-                    .digest("hex");
+            const expectedHmac = crypto.default
+                .createHmac("sha512", hmacSecret)
+                .update(data)
+                .digest("hex");
 
-                if (expectedHmac !== receivedHmac) {
-                    return res.status(401).json({ message: "توقيع عملية الدفع غير صالح." });
-                }
+            if (expectedHmac !== receivedHmac) {
+                return res.status(401).json({ message: "Invalid HMAC" });
             }
+        } else if (process.env.NODE_ENV === "production") {
+            return res.status(401).json({ message: "Missing HMAC" });
         }
 
         const payment = await Payment.findOne({ merchantOrderId: merchant_order_id });
         if (!payment) return res.status(200).json({ message: "لم يتم العثور على عملية الدفع." });
+
+        // Idempotency check
+        if (payment.status === "success") {
+            return res.status(200).json({ message: "Payment already processed" });
+        }
+
+        // Amount and Currency Validation
+        if (success) {
+            if (obj.amount_cents !== payment.amount * 100 || obj.currency !== "EGP") {
+                payment.status = "failed";
+                payment.webhookPayload = { ...obj, error_reason: "Amount or Currency Mismatch" };
+                await payment.save();
+                return res.status(400).json({ message: "Amount or Currency Mismatch" });
+            }
+        }
 
         payment.paymobTransactionId = transactionId?.toString();
         payment.webhookPayload = obj;
@@ -249,16 +264,17 @@ export const handleWebhook = async (req, res, next) => {
 
         if (success) {
             if (payment.type === "BOOKING_FEE" && payment.bookingId) {
-                await Booking.findByIdAndUpdate(payment.bookingId, {
-                    status: "RESERVED",
-                    paymentId: payment._id,
-                });
+                const booking = await Booking.findById(payment.bookingId);
+                if (booking && booking.status === "PENDING_PAYMENT") {
+                    booking.status = "RESERVED";
+                    booking.paymentId = payment._id;
+                    await booking.save();
+                }
             }
 
             if (payment.type === "LISTING_FEE" && payment.propertyId) {
                 await Property.findByIdAndUpdate(payment.propertyId, {
                     listingPaid: true,
-                    status: "APPROVED",
                 });
             }
         }

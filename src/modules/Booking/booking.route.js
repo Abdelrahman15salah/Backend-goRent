@@ -5,7 +5,7 @@ import { createBooking, cancelBooking, getTenantBookings, getOwnerBookings, getP
 
 const router = express.Router()
 
-router.post("/", verifyAuth, verifyRole(["tenant"]), validateCreateBooking, createBooking)
+router.post("/", verifyAuth, verifyRole(["tenant" ,"admin"]), validateCreateBooking, createBooking)
 router.patch("/:id/cancel", verifyAuth, verifyRole(["tenant"]), cancelBooking)
 router.get("/tenant", verifyAuth, verifyRole(["tenant"]), getTenantBookings)
 router.get("/owner", verifyAuth, verifyRole(["owner"]), getOwnerBookings)
