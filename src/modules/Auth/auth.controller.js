@@ -10,7 +10,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const cookieOptions = {
   httpOnly: true,
   secure: false,
-  sameSite: "lax",
+  sameSite: isProduction ? "none" : "lax",
   maxAge: 24 * 60 * 60 * 1000,
   path: "/",
 };
@@ -103,7 +103,7 @@ const getCurrentUser = async (req, res) => {
       return next(new Error("User not found", { cause: 404 }));
     }
 
-return res.status(200).json({ message: "Login successful", user });
+    return res.status(200).json({ message: "Login successful", user });
   } catch (error) {
     // return res.status(500).json({
     //   message: "Server error",
@@ -177,7 +177,9 @@ const verifyOTP = async (req, res, next) => {
 
     const validOtp = await OTP.findOne({ email, otp });
     if (!validOtp) {
-      return next(new Error("Invalid or expired verification code", { cause: 400 }));
+      return next(
+        new Error("Invalid or expired verification code", { cause: 400 }),
+      );
     }
 
     return res.status(200).json({ message: "OTP verified successfully" });
@@ -190,12 +192,16 @@ const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return next(new Error("Email, OTP, and new password are required", { cause: 400 }));
+      return next(
+        new Error("Email, OTP, and new password are required", { cause: 400 }),
+      );
     }
 
     const validOtp = await OTP.findOne({ email, otp });
     if (!validOtp) {
-      return next(new Error("Invalid or expired verification code", { cause: 400 }));
+      return next(
+        new Error("Invalid or expired verification code", { cause: 400 }),
+      );
     }
 
     const user = await User.findOne({ email });
@@ -214,4 +220,13 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-export { login, register, logout, getCurrentUser, getSocketToken, forgotPassword, verifyOTP, resetPassword };
+export {
+  login,
+  register,
+  logout,
+  getCurrentUser,
+  getSocketToken,
+  forgotPassword,
+  verifyOTP,
+  resetPassword,
+};
