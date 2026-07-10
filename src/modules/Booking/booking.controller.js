@@ -11,45 +11,45 @@ export const createBooking = async (req, res, next) => {
 
     if (!propertyId || !startDate || !endDate) {
       return next(
-        new Error("propertyId, startDate, and endDate are required", { cause: 400 }),
+        new Error("يرجى تحديد العقار وتاريخ البداية والنهاية للحجز.", { cause: 400 }),
       );
     }
 
     if (new Date(startDate) >= new Date(endDate)) {
-      return next(new Error("endDate must be after startDate", { cause: 400 }));
+      return next(new Error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية.", { cause: 400 }));
     }
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
     if (new Date(startDate) < startOfToday) {
-      return next(new Error("startDate cannot be in the past", { cause: 400 }));
+      return next(new Error("تاريخ البداية لا يمكن أن يكون في الماضي.", { cause: 400 }));
     }
 
     const tenant = await User.findById(tenantId);
 
     if (!tenant) {
-      return next(new Error("User not found", { cause: 404 }));
+      return next(new Error("عذراً، لم نتمكن من العثور على حسابك. يرجى التأكد من البيانات المدخلة.", { cause: 404 }));
     }
 
     if (tenant.isbanned) {
-      return next(new Error("Your account has been banned", { cause: 403 }));
+      return next(new Error("تم حظر حسابك، يرجى التواصل مع الدعم الفني.", { cause: 403 }));
     }
 
     const property = await Property.findById(propertyId);
 
     if (!property) {
-      return next(new Error("Property not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
     }
 
     if (property.status !== "APPROVED") {
       return next(
-        new Error("Property is not available for booking", { cause: 400 }),
+        new Error("عذراً، هذا العقار غير متاح للحجز.", { cause: 400 }),
       );
     }
 
     if (property.ownerId.toString() === tenantId.toString()) {
-      return next(new Error("You cannot book your own property", { cause: 400 }));
+      return next(new Error("لا يمكنك حجز عقار تملكه بالفعل.", { cause: 400 }));
     }
 
     const conflict = await Booking.findOne({
@@ -61,7 +61,7 @@ export const createBooking = async (req, res, next) => {
 
     if (conflict) {
       return next(
-        new Error("Property is already booked for these dates", { cause: 400 }),
+        new Error("عذراً، العقار محجوز بالفعل في هذه التواريخ.", { cause: 400 }),
       );
     }
 
@@ -104,11 +104,11 @@ export const acceptBooking = async (req, res, next) => {
     const booking = await Booking.findById(id).populate("propertyId", "ownerId");
 
     if (!booking) {
-      return next(new Error("Booking not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا الحجز.", { cause: 404 }));
     }
 
     if (booking.propertyId.ownerId.toString() !== ownerId.toString()) {
-      return next(new Error("Not authorized", { cause: 403 }));
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     if (booking.status !== "PENDING_OWNER_APPROVAL") {
@@ -140,11 +140,11 @@ export const rejectBooking = async (req, res, next) => {
     const booking = await Booking.findById(id).populate("propertyId", "ownerId");
 
     if (!booking) {
-      return next(new Error("Booking not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا الحجز.", { cause: 404 }));
     }
 
     if (booking.propertyId.ownerId.toString() !== ownerId.toString()) {
-      return next(new Error("Not authorized", { cause: 403 }));
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     if (booking.status !== "PENDING_OWNER_APPROVAL") {
@@ -175,15 +175,15 @@ export const cancelBooking = async (req, res, next) => {
     const booking = await Booking.findById(id);
 
     if (!booking) {
-      return next(new Error("Booking not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا الحجز.", { cause: 404 }));
     }
 
     if (booking.tenantId.toString() !== tenantId.toString()) {
-      return next(new Error("Not authorized", { cause: 403 }));
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     if (booking.status === "CANCELLED") {
-      return next(new Error("Booking already cancelled", { cause: 400 }));
+      return next(new Error("تم إلغاء هذا الحجز مسبقاً.", { cause: 400 }));
     }
 
     booking.status = "CANCELLED";
@@ -267,14 +267,14 @@ export const getPropertyBookings = async (req, res, next) => {
     const property = await Property.findById(propertyId);
 
     if (!property) {
-      return next(new Error("Property not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
     }
 
     const isOwner = property.ownerId.toString() === requesterId.toString();
     const isAdmin = req.user.role === "admin" || req.user.role === "superadmin";
 
     if (!isOwner && !isAdmin) {
-      return next(new Error("Not authorized", { cause: 403 }));
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     const bookings = await Booking.find({ propertyId })

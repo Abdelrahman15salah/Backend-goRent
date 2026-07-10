@@ -137,7 +137,7 @@ const buildPropertyFilter = (query) => {
   if (lng !== undefined || lat !== undefined || radius !== undefined) {
     if (lng === undefined || lat === undefined || radius === undefined) {
       return {
-        error: "lng, lat, and radius are required together for geo search",
+        error: "يرجى تحديد الموقع الجغرافي بشكل كامل للبحث.",
       };
     }
 
@@ -272,7 +272,7 @@ export const getProperties = async (req, res, next) => {
     });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -284,9 +284,9 @@ export const getPropertyById = async (req, res, next) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      // return res.status(400).json({ message: "Invalid property id" });
+      // return res.status(400).json({ message: "معرف العقار غير صالح." });
 
-      return next(new Error("Invalid property id", { cause: 400 }));
+      return next(new Error("معرف العقار غير صالح.", { cause: 400 }));
     }
 
     const property = await Property.findOne({
@@ -295,9 +295,9 @@ export const getPropertyById = async (req, res, next) => {
     }).populate("ownerId", "name email phone profileImage");
 
     if (!property) {
-      // return res.status(404).json({ message: "Property not found" });
+      // return res.status(404).json({ message: "لم نتمكن من العثور على هذا العقار." });
 
-      return next(new Error("Property not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
     }
 
     property.views = (property.views || 0) + 1;
@@ -311,7 +311,7 @@ export const getPropertyById = async (req, res, next) => {
     return res.status(200).json({ property });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -324,24 +324,24 @@ export const updateProperty = async (req, res, next) => {
     const userId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      // return res.status(400).json({ message: "Invalid property id" });
+      // return res.status(400).json({ message: "معرف العقار غير صالح." });
 
-      return next(new Error("Invalid property id", { cause: 400 }));
+      return next(new Error("معرف العقار غير صالح.", { cause: 400 }));
     }
 
     const property = await Property.findById(id);
 
     if (!property) {
-      // return res.status(404).json({ message: "Property not found" })
+      // return res.status(404).json({ message: "لم نتمكن من العثور على هذا العقار." })
       //
 
-      return next(new Error("Property not found", { cause: 404 }));
+      return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
     }
 
     if (property.ownerId.toString() !== userId.toString()) {
-      // return res.status(403).json({ message: "Not authorized" });
+      // return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." });
 
-      return next(new Error("Not authorized", { cause: 403 }));
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     const updatableFields = [
@@ -401,7 +401,7 @@ export const updateProperty = async (req, res, next) => {
     });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -414,20 +414,20 @@ export const deleteProperty = async (req, res, next) => {
     const userId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      // return res.status(400).json({ message: "Invalid property id" });
-      return next(new Error("Invalid property id", { cause: 400 }));
+      // return res.status(400).json({ message: "معرف العقار غير صالح." });
+      return next(new Error("معرف العقار غير صالح.", { cause: 400 }));
     }
 
     const property = await Property.findById(id);
 
     if (!property) {
-      // return res.status(404).json({ message: "Property not found" });
-      return next(new Error("Property not found", { cause: 404 }));
+      // return res.status(404).json({ message: "لم نتمكن من العثور على هذا العقار." });
+      return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
     }
 
     if (property.ownerId.toString() !== userId.toString()) {
-      // return res.status(403).json({ message: "Not authorized" });
-      return next(new Error("Not authorized", { cause: 403 }));
+      // return res.status(403).json({ message: "ليس لديك الصلاحية لإجراء هذا التعديل." });
+      return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
     }
 
     await Property.findByIdAndDelete(id);
@@ -437,7 +437,7 @@ export const deleteProperty = async (req, res, next) => {
     });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -494,7 +494,7 @@ export const approveProperty = async (req, res, next) => {
     });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -551,7 +551,7 @@ export const rejectProperty = async (req, res, next) => {
     });
   } catch (error) {
     // return res.status(500).json({
-    //   message: "Server error",
+    //   message: "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً.",
     //   error: error.message,
     // });
     return next(error);
@@ -597,7 +597,7 @@ export const getOwnerDashboard = async (req, res, next) => {
     const ownerId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(ownerId)) {
-      return next(new Error("Invalid owner id", { cause: 400 }));
+      return next(new Error("معرف المالك غير صالح.", { cause: 400 }));
     }
 
     const properties = await Property.find({ ownerId }).sort({ updatedAt: -1 });

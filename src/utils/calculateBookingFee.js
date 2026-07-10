@@ -23,7 +23,7 @@
 
 //     const nights = Math.round((end - start) / oneDayMs)
 //     if (nights <= 0) {
-//         throw new Error("endDate must be after startDate")
+//         throw new Error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية.")
 //     }
 
 //     const totalStayValue = calculateTotalStayValue(nights, property)
@@ -58,7 +58,7 @@ const calculateTotalStayValue = (nights, { pricePerDay, pricePerMonth }) => {
 export const calculateBookingFeeEGP = (startDate, endDate, property) => {
     // 1. التأكد من وجود بيانات الأسعار
     if (!property || (!property.pricePerMonth && !property.pricePerDay)) {
-        throw new Error("بيانات أسعار العقار مفقودة");
+        throw new Error("بيانات الدفع الخاصة بالعقار غير مكتملة، يرجى المحاولة لاحقاً.");
     }
 
     const start = new Date(startDate);
@@ -68,17 +68,18 @@ export const calculateBookingFeeEGP = (startDate, endDate, property) => {
     const nights = Math.round((end - start) / oneDayMs);
 
     if (nights <= 0) {
-        throw new Error("endDate must be after startDate");
+        throw new Error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية.");
     }
 
     const totalStayValue = calculateTotalStayValue(nights, property);
     const fee = totalStayValue * 0.10;
+    const finalAmount = totalStayValue + fee;
 
-    const finalFee = Math.round(fee * 100) / 100;
+    const finalFee = Math.round(finalAmount * 100) / 100;
 
     // 2. Paymob بترفض أي مبلغ أقل من أو يساوي صفر
     if (finalFee <= 0) {
-        throw new Error("مبلغ الحجز المحسوب يساوي صفر، لا يمكن إتمام الدفع");
+        throw new Error("المبلغ الإجمالي صفر، لا يمكن المتابعة للدفع.");
     }
 
     return finalFee;

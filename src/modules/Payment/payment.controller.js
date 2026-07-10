@@ -4,7 +4,7 @@ import Booking from "../../DB/Models/booking.model.js";
 import Property from "../../DB/Models/property.model.js";
 import User from "../../DB/Models/user.model.js";
 import { initiatePayment } from "./paymob.service.js";
-import { calculateBookingFeeEGP, LISTING_FEE_EGP } from "../../utils/calculateBookingFee.js";
+import { calculateBookingFeeEGP } from "../../utils/calculateBookingFee.js";
 
 
 const buildBillingData = (user) => {
@@ -35,11 +35,15 @@ export const initiateListingFeePayment = async (req, res, next) => {
 
         const property = await Property.findById(propertyId);
         if (!property) {
-            return next(new Error("Property not found", { cause: 404 }));
+            return next(new Error("لم نتمكن من العثور على هذا العقار.", { cause: 404 }));
         }
 
         if (property.ownerId.toString() !== ownerId.toString()) {
-            return next(new Error("Not authorized", { cause: 403 }));
+            return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
+        }
+
+        if (property.status !== "APPROVED") {
+            return next(new Error("يجب الموافقة على العقار من قبل الإدارة قبل إتمام الدفع.", { cause: 403 }));
         }
 
         // Don't let an owner pay twice for the same property.
@@ -49,7 +53,7 @@ export const initiateListingFeePayment = async (req, res, next) => {
             status: "success",
         });
         if (existingSuccess) {
-            return next(new Error("Listing fee already paid for this property", { cause: 400 }));
+            return next(new Error("تم سداد الرسوم لهذا العقار مسبقاً.", { cause: 400 }));
         }
 
         const owner = await User.findById(ownerId);
@@ -58,19 +62,25 @@ export const initiateListingFeePayment = async (req, res, next) => {
         // before the Payment document actually exists.
         const paymentId = new mongoose.Types.ObjectId();
 
+        const platformFeeEGP = Math.round((property.pricePerMonth || 0) * 0.10 * 100) / 100;
+        
+        if (platformFeeEGP <= 0) {
+            return next(new Error("رسوم المنصة غير متوفرة، لا يمكن إتمام الدفع.", { cause: 400 }));
+        }
+
         const payment = await Payment.create({
             _id: paymentId,
             type: "LISTING_FEE",
             propertyId,
             userId: ownerId,
-            amount: LISTING_FEE_EGP,
+            amount: platformFeeEGP,
             merchantOrderId: paymentId.toString(),
             status: "pending",
         });
 
         try {
             const { paymentUrl, paymentKey, providerOrderId } = await initiatePayment({
-                amountEGP: LISTING_FEE_EGP,
+                amountEGP: platformFeeEGP,
                 merchantOrderId: payment.merchantOrderId,
                 billingData: buildBillingData(owner),
             });
@@ -104,11 +114,11 @@ export const initiateBookingFeePayment = async (req, res, next) => {
 
         const booking = await Booking.findById(bookingId).populate("propertyId");
         if (!booking) {
-            return next(new Error("Booking not found", { cause: 404 }));
+            return next(new Error("لم نتمكن من العثور على هذا الحجز.", { cause: 404 }));
         }
 
         if (booking.tenantId.toString() !== tenantId.toString()) {
-            return next(new Error("Not authorized", { cause: 403 }));
+            return next(new Error("ليس لديك الصلاحية لإجراء هذا التعديل.", { cause: 403 }));
         }
 
         if (booking.status !== "PENDING_PAYMENT") {
@@ -125,7 +135,7 @@ export const initiateBookingFeePayment = async (req, res, next) => {
             status: "success",
         });
         if (existingSuccess) {
-            return next(new Error("This booking has already been paid for", { cause: 400 }));
+            return next(new Error("تم دفع رسوم هذا الحجز مسبقاً.", { cause: 400 }));
         }
 
         const tenant = await User.findById(tenantId);
@@ -185,7 +195,7 @@ export const handleWebhook = async (req, res, next) => {
         const merchant_order_id = obj.order?.merchant_order_id;
 
         if (!merchant_order_id) {
-            return res.status(200).json({ message: "No merchant_order_id" });
+            return res.status(200).json({ message: "رقم طلب الدفع غير موجود." });
         }
 
         // HMAC verification
@@ -230,7 +240,7 @@ export const handleWebhook = async (req, res, next) => {
         }
 
         const payment = await Payment.findOne({ merchantOrderId: merchant_order_id });
-        if (!payment) return res.status(200).json({ message: "Payment not found" });
+        if (!payment) return res.status(200).json({ message: "لم يتم العثور على عملية الدفع." });
 
         // Idempotency check
         if (payment.status === "success") {

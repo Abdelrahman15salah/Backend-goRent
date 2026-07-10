@@ -7,7 +7,7 @@ export const verifyRole = (requiredRole) => {
 
       return res
         .status(401)
-        .json({ message: "Access Denied: No token provided" });
+        .json({ message: "عذراً، يجب تسجيل الدخول أولاً للوصول إلى هذه الصفحة." });
     }
 
     if (
@@ -28,7 +28,7 @@ export const verifyAuth = (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({
-      message: "No token provided",
+      message: "عذراً، يجب تسجيل الدخول للقيام بهذا الإجراء.",
     });
   }
 
@@ -40,7 +40,7 @@ export const verifyAuth = (req, res, next) => {
     next();
   } catch {
     return res.status(401).json({
-      message: "Invalid token",
+      message: "انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.",
     });
   }
 };

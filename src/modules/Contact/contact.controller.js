@@ -9,7 +9,7 @@ export const submitContact = async (req, res, next) => {
     const { name, email, subject, message } = req.body;
     if (!name || !email || !subject || !message) {
       return next(
-        new Error("name, email, subject, and message are all required", {
+        new Error("يرجى تعبئة جميع حقول التواصل.", {
           cause: 400,
         }),
       );
@@ -17,12 +17,12 @@ export const submitContact = async (req, res, next) => {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return next(new Error("Invalid email address", { cause: 400 }));
+      return next(new Error("البريد الإلكتروني المدخل غير صالح.", { cause: 400 }));
     }
 
     if (message.trim().length < 10) {
       return next(
-        new Error("Message must be at least 10 characters long", {
+        new Error("الرسالة يجب أن تتكون من 10 أحرف على الأقل.", {
           cause: 400,
         }),
       );
@@ -132,7 +132,7 @@ export const updateContactStatus = async (req, res, next) => {
     );
 
     if (!contact) {
-      return next(new Error("Contact message not found", { cause: 404 }));
+      return next(new Error("الرسالة غير موجودة.", { cause: 404 }));
     }
 
     return res.status(200).json({ message: "Status updated", contact });
@@ -148,7 +148,7 @@ export const deleteContact = async (req, res, next) => {
     const contact = await Contact.findByIdAndDelete(id);
 
     if (!contact) {
-      return next(new Error("Contact message not found", { cause: 404 }));
+      return next(new Error("الرسالة غير موجودة.", { cause: 404 }));
     }
 
     return res
