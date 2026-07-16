@@ -2,6 +2,8 @@ import Booking from "../../DB/Models/booking.model.js";
 import Notification from "../../DB/Models/notification.model.js";
 import Property from "../../DB/Models/property.model.js";
 import User from "../../DB/Models/user.model.js";
+import Review from "../../DB/Models/review.model.js";
+import Payment from "../../DB/Models/payment.model.js";
 import { emitToUser } from "../Chat/chat.socket.js";
 
 export const createBooking = async (req, res, next) => {
@@ -291,7 +293,7 @@ export const getOwnerAnalytics = async (req, res, next) => {
   try {
     const ownerId = req.user.id;
 
-    const properties = await Property.find({ ownerId }).select("_id title");
+    const properties = await Property.find({ ownerId }).select("_id title views");
     const propertyIds = properties.map((p) => p._id);
 
     if (!propertyIds.length) {
@@ -300,14 +302,18 @@ export const getOwnerAnalytics = async (req, res, next) => {
         monthlyTrend: [],
         perProperty: [],
         totals: { total: 0, reserved: 0, acceptanceRate: 0, cancellationRate: 0 },
+        upcomingBookings: [],
+        revenueByProperty: [],
+        ratingsOverview: [],
       });
     }
 
     const allBookings = await Booking.find({ propertyId: { $in: propertyIds } })
       .populate("propertyId", "title")
+      .populate("tenantId", "name email")
       .lean();
 
-    // Status breakdown
+    // ── Status breakdown ──────────────────────────────────────────────────────
     const statusBreakdown = {
       PENDING_OWNER_APPROVAL: 0,
       PENDING_PAYMENT: 0,
@@ -319,7 +325,7 @@ export const getOwnerAnalytics = async (req, res, next) => {
       if (statusBreakdown[b.status] !== undefined) statusBreakdown[b.status]++;
     }
 
-    // Monthly trend — last 6 months
+    // ── Monthly trend — last 6 months ─────────────────────────────────────────
     const now = new Date();
     const monthlyTrend = [];
     for (let i = 5; i >= 0; i--) {
@@ -341,7 +347,7 @@ export const getOwnerAnalytics = async (req, res, next) => {
       });
     }
 
-    // Per-property breakdown
+    // ── Per-property breakdown ────────────────────────────────────────────────
     const propertyMap = {};
     for (const p of properties) {
       propertyMap[p._id.toString()] = {
@@ -364,7 +370,7 @@ export const getOwnerAnalytics = async (req, res, next) => {
     }
     const perProperty = Object.values(propertyMap).sort((a, b) => b.total - a.total);
 
-    // Summary totals
+    // ── Summary totals ────────────────────────────────────────────────────────
     const total = allBookings.length;
     const reserved = statusBreakdown.RESERVED;
     const rejected = statusBreakdown.REJECTED;
@@ -373,13 +379,91 @@ export const getOwnerAnalytics = async (req, res, next) => {
     const acceptanceRate = decidedCount > 0 ? Math.round((reserved / decidedCount) * 100) : 0;
     const cancellationRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
 
+    // ── Upcoming bookings (next 5 RESERVED) ───────────────────────────────────
+    const reservedBookingIds = allBookings
+      .filter((b) => b.status === "RESERVED")
+      .map((b) => b._id);
+
+    const upcomingBookings = allBookings
+      .filter((b) => b.status === "RESERVED" && new Date(b.startDate) >= now)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+      .slice(0, 5)
+      .map((b) => ({
+        bookingId: b._id,
+        propertyTitle: b.propertyId?.title || "—",
+        tenantName: b.tenantId?.name || "—",
+        tenantEmail: b.tenantId?.email || "—",
+        startDate: b.startDate,
+        endDate: b.endDate,
+      }));
+
+    // ── Revenue by property (from successful BOOKING_FEE payments) ────────────
+    const bookingIdToPropertyId = {};
+    for (const b of allBookings) {
+      const pid = b.propertyId?._id?.toString() || b.propertyId?.toString();
+      if (pid) bookingIdToPropertyId[b._id.toString()] = pid;
+    }
+
+    const bookingFeePayments = await Payment.find({
+      type: "BOOKING_FEE",
+      status: "success",
+      bookingId: { $in: reservedBookingIds },
+    }).lean();
+
+    const revenueMap = {};
+    for (const p of properties) {
+      revenueMap[p._id.toString()] = { title: p.title, revenue: 0, bookingCount: 0 };
+    }
+    for (const payment of bookingFeePayments) {
+      const pid = bookingIdToPropertyId[payment.bookingId?.toString()];
+      if (pid && revenueMap[pid]) {
+        revenueMap[pid].revenue += payment.amount;
+        revenueMap[pid].bookingCount += 1;
+      }
+    }
+    const revenueByProperty = Object.values(revenueMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .filter((item) => item.bookingCount > 0 || item.revenue > 0);
+
+    // ── Ratings overview (avg rating per property from reviews) ───────────────
+    const ratingsRaw = await Review.aggregate([
+      { $match: { propertyId: { $in: propertyIds }, targetType: "PROPERTY" } },
+      {
+        $group: {
+          _id: "$propertyId",
+          avgRating: { $avg: "$rating" },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const ratingMap = {};
+    for (const r of ratingsRaw) {
+      ratingMap[r._id.toString()] = {
+        avgRating: Math.round(r.avgRating * 10) / 10,
+        reviewCount: r.reviewCount,
+      };
+    }
+    const ratingsOverview = properties.map((p) => ({
+      propertyId: p._id,
+      title: p.title,
+      views: p.views || 0,
+      avgRating: ratingMap[p._id.toString()]?.avgRating ?? null,
+      reviewCount: ratingMap[p._id.toString()]?.reviewCount ?? 0,
+    })).sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0));
+
     return res.status(200).json({
       statusBreakdown,
       monthlyTrend,
       perProperty,
       totals: { total, reserved, acceptanceRate, cancellationRate },
+      upcomingBookings,
+      revenueByProperty,
+      ratingsOverview,
     });
   } catch (error) {
     return next(error);
   }
-};
+};
+
+
