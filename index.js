@@ -22,7 +22,7 @@ import disputeRouter from "./src/modules/Dispute/dispute.route.js";
 import adminLogRouter from "./src/modules/Admin/adminLog.route.js";
 
 const PORT = process.env.PORT || 5000;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
+const CLIENT_ORIGIN = (process.env.CLIENT_ORIGIN || "http://localhost:3000").replace(/\/+$/, "");
 
 const app = express();
 const httpServer = createServer(app);
