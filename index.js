@@ -36,9 +36,26 @@ const io = new Server(httpServer, {
 
 initChatSocket(io);
 
+const allowedOrigins = [
+  CLIENT_ORIGIN,
+  "http://localhost:3000",
+  "https://go-rent-front-end-git-main-nourhanadel123s-projects.vercel.app",
+];
+
 app.use(
   cors({
-    origin: CLIENT_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.includes("localhost")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   }),
 );
@@ -48,14 +65,6 @@ app.use(cookieParser());
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
-});
-
-app.get("/api/public/test", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Public API test route is working!",
-    timestamp: new Date().toISOString(),
-  });
 });
 
 app.use("/api/auth", authRouter);
