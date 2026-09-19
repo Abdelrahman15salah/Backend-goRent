@@ -45,16 +45,9 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl)
       if (!origin) return callback(null, true);
-      if (
-        allowedOrigins.includes(origin) ||
-        origin.endsWith(".vercel.app") ||
-        origin.includes("localhost")
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, true);
+      const cleanOrigin = origin.replace(/\/+$/, "");
+      return callback(null, cleanOrigin);
     },
     credentials: true,
   }),
