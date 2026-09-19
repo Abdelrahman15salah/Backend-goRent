@@ -50,6 +50,14 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+app.get("/api/public/test", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Public API test route is working!",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/properties", propertyRouter);
@@ -61,10 +69,10 @@ app.use("/api/reviews", reviewsRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/contact", contactRouter);
-app.use("/api/disputes",disputeRouter)
+app.use("/api/disputes", disputeRouter);
 
-app.use('/api/report',reportRouter)
-app.use('/api/logs', adminLogRouter)
+app.use("/api/report", reportRouter);
+app.use("/api/logs", adminLogRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
