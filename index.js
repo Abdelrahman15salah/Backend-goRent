@@ -56,6 +56,17 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Middleware to ensure DB is connected for serverless invocations
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection error:", err);
+    res.status(500).json({ message: "Database connection failed" });
+  }
+});
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
@@ -85,12 +96,11 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ message: err.message });
 });
 
-const startServer = async () => {
-  await connectDB();
-
+// Local development server listener
+if (process.env.NODE_ENV !== "production") {
   httpServer.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
-};
+}
 
-startServer();
+export default app;
